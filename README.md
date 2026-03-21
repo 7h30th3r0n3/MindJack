@@ -274,6 +274,54 @@ A single `AGENTS.md` in a cloned repo can silently poison 5+ AI tools.
 
 ---
 
+## OWASP Mapping
+
+Every MindJack scenario maps to real-world vulnerabilities catalogued by OWASP.
+
+### OWASP Top 10 for LLM Applications (2025)
+
+> Source: [genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025](https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/)
+
+| ID | Vulnerability | MindJack Coverage |
+|----|--------------|-------------------|
+| **LLM01** | Prompt Injection | All instruction/rules injections (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.clinerules`, `.windsurfrules`) -- the core of MindJack |
+| **LLM02** | Sensitive Information Disclosure | `exfiltrate_secrets`, `exfiltrate_codebase`, `exfiltrate_git` presets + `claude-hook-exfil`, `claude-hook-file-watch` recipes |
+| **LLM03** | Supply Chain | `cross-tool-supply-chain`, `backdoor_dependency`, `persist_postinstall` -- malicious deps injected via instruction files |
+| **LLM04** | Data and Model Poisoning | `claude-memory-poison`, `claude-memory-fake-user`, `windsurf-memory-inject`, `cline-memory-bank-poison` -- persistent context poisoning |
+| **LLM05** | Improper Output Handling | `redirect_output_format` preset -- forces model to embed exfiltrated data in its output |
+| **LLM06** | Excessive Agency | `claude-settings-allowall`, `claude-hook-autoapprove`, `codex-sandbox-disable`, `permission_escalation` -- granting tools/permissions beyond scope |
+| **LLM07** | System Prompt Leakage | Extractor reads all system prompts, session summaries, and memories -- demonstrates full prompt recovery |
+| **LLM09** | Misinformation | `stealth_gaslight`, `stealth_distract` -- model actively misleads user about its own behavior |
+| **LLM10** | Unbounded Consumption | `codex-model-swap` -- redirect to cheaper models, degrade quality silently |
+
+### OWASP Top 10 for Agentic Applications (2025)
+
+> Source: [genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
+
+| ID | Vulnerability | MindJack Coverage |
+|----|--------------|-------------------|
+| **ASI01** | Agent Goal Hijack | `redirect_instructions`, `cross-tool-full-takeover`, `claude-rules-inject` -- override agent objectives via instruction files |
+| **ASI02** | Tool Misuse | `claude-hook-autoapprove`, `permission_escalation`, `permission_autocommit` -- agents use tools in unintended ways |
+| **ASI03** | Identity & Privilege Abuse | `claude-settings-allowall`, `codex-sandbox-disable` -- escalate agent permissions via config |
+| **ASI04** | Agentic Supply Chain | `mcp-rogue-server`, `mcp-reverse-shell`, `mcp-env-stealer`, `cursor-mcp-rce`, `amazonq-mcp-inject` -- poisoned MCP tool servers |
+| **ASI05** | Unexpected Code Execution | `claude-hook-exfil`, `claude-hook-keylogger`, all MCP recipes -- hooks and MCP servers execute arbitrary shell commands |
+| **ASI06** | Memory & Context Poisoning | `claude-memory-poison`, `claude-memory-fake-user`, `claude-memory-fake-reference`, `cline-memory-bank-poison`, `windsurf-memory-inject` |
+| **ASI07** | Insecure Inter-Agent Communication | `cross-tool-agents-md` -- a single file silently poisons 5+ agents that read from the same repo |
+| **ASI08** | Cascading Failures | `sabotage_tests`, `sabotage_security` -- poisoned instructions cascade into broken code across the entire project |
+| **ASI09** | Human-Agent Trust Exploitation | `social_trust`, `social_urgency`, `stealth_deny`, `stealth_gaslight` -- agents manipulate user trust |
+| **ASI10** | Rogue Agents | `persist_cron`, `persist_postinstall`, `claude-hook-keylogger` -- agents persist malicious behavior across sessions |
+
+### Coverage Summary
+
+| Framework | Covered | Total | Coverage |
+|-----------|:-------:|:-----:|:--------:|
+| OWASP Top 10 LLM (2025) | 9/10 | 10 | **90%** |
+| OWASP Top 10 Agentic (2025) | 10/10 | 10 | **100%** |
+
+> LLM08 (Vector and Embedding Weaknesses) is the only entry not covered -- it relates to RAG pipeline internals, not local file-based attack surfaces.
+
+---
+
 ## Platform Support
 
 | Platform | Extractor | Injector |
