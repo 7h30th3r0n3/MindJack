@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "mindjack"
+version = "2.0.0a1"
+description = "Agent workspace exposure mapper for AI coding assistant security assessment"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Topic :: Security",
+    "Programming Language :: Python :: 3",
+]
+
+[project.scripts]
+mindjack = "mindjack.cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["mindjack*"]
