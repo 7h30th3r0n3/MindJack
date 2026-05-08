@@ -1,0 +1,1 @@
+"""Report generation (JSON, Markdown)."""
