@@ -4,10 +4,11 @@
 
 Security research toolkit for auditing the local attack surface of AI coding assistants.
 
-**Two tools, zero dependencies, Python 3.10+ standard library only.**
+**Zero dependencies, Python 3.10+ standard library only.**
 
-1. **`extractor.py`** -- Extract conversation history from 10 AI tools
-2. **`injector.py`** -- Scan injection surfaces, demonstrate 56 attack scenarios
+1. **`extractor.py`** - Extract conversation history from 10 AI tools
+2. **`injector.py`** - Scan injection surfaces, demonstrate 56 attack scenarios
+3. **`mindjack report`** - Generate interactive HTML attack graph with OWASP compliance mapping
 
 > **Disclaimer:** For authorized security testing, red teaming, CTF challenges, and AI safety research only. Always obtain proper authorization before testing on systems you don't own.
 
@@ -32,8 +33,8 @@ Security research toolkit for auditing the local attack surface of AI coding ass
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/mindjack.git
-cd mindjack
+git clone https://github.com/7h30th3r0n3/MindJack.git
+cd MindJack
 
 # Extract all conversations
 python3 extractor.py
@@ -46,6 +47,10 @@ python3 injector.py recipes
 
 # Dry-run an injection (safe, no modifications)
 python3 injector.py inject --recipe claude-memory-poison --dry-run
+
+# Generate interactive HTML attack report
+pip install -e .
+mindjack report --scope ~ --allow-home-scope --existing-only -o report.html
 ```
 
 ---
@@ -117,28 +122,28 @@ Scans and demonstrates file-based prompt injection and configuration poisoning a
 |----------|------|---------|
 | **Instructions** | CRITICAL | `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.clinerules`, `.windsurfrules` |
 | **Settings** | CRITICAL | `settings.json` (allowedTools), `config.toml` (sandbox_mode) |
-| **MCP** | CRITICAL | `.mcp.json` -- spawn arbitrary processes as "tool servers" |
+| **MCP** | CRITICAL | `.mcp.json` - spawn arbitrary processes as "tool servers" |
 | **Hooks** | CRITICAL | Shell commands auto-executed on session events (RCE) |
 | **Memory** | HIGH | Persistent context that resurfaces across sessions |
 
 ### Commands
 
 ```bash
-# Scan -- discover all injectable targets
+# Scan - discover all injectable targets
 python3 injector.py scan
 python3 injector.py scan --json targets.json
 
-# Recipes -- list all 33 predefined attack scenarios
+# Recipes - list all 33 predefined attack scenarios
 python3 injector.py recipes
 
-# Inject -- execute (always --dry-run first!)
+# Inject - execute (always --dry-run first!)
 python3 injector.py inject --recipe <name> --dry-run
 python3 injector.py inject --recipe <name>
 python3 injector.py inject --payload "your text" --tool claude-code --category memory --dry-run
 python3 injector.py inject --payload-file evil.txt --tool cursor --dry-run
 python3 injector.py inject --payload-preset exfiltrate_secrets --existing-only --dry-run
 
-# Clean -- remove all injections, restore backups
+# Clean - remove all injections, restore backups
 python3 injector.py clean
 python3 injector.py clean --dry-run
 ```
@@ -254,9 +259,9 @@ Presets can be injected into any target with `--payload-preset`:
 - **Automatic backups** (`.agentscan.bak`) before any modification
 - **`clean` command** restores all files from backups
 - **Injection markers** (`<!-- AGENTSCAN-INJECTION -->`) for identification
-- **Double injection prevention** -- skips files already injected
-- **Recipe target filtering** -- recipes only inject into their declared targets
-- **JSON parse safety** -- refuses to overwrite files it cannot parse
+- **Double injection prevention** - skips files already injected
+- **Recipe target filtering** - recipes only inject into their declared targets
+- **JSON parse safety** - refuses to overwrite files it cannot parse
 
 ---
 
@@ -284,15 +289,15 @@ Every MindJack scenario maps to real-world vulnerabilities catalogued by OWASP.
 
 | ID | Vulnerability | MindJack Coverage |
 |----|--------------|-------------------|
-| **LLM01** | Prompt Injection | All instruction/rules injections (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.clinerules`, `.windsurfrules`) -- the core of MindJack |
+| **LLM01** | Prompt Injection | All instruction/rules injections (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.clinerules`, `.windsurfrules`) - the core of MindJack |
 | **LLM02** | Sensitive Information Disclosure | `exfiltrate_secrets`, `exfiltrate_codebase`, `exfiltrate_git` presets + `claude-hook-exfil`, `claude-hook-file-watch` recipes |
-| **LLM03** | Supply Chain | `cross-tool-supply-chain`, `backdoor_dependency`, `persist_postinstall` -- malicious deps injected via instruction files |
-| **LLM04** | Data and Model Poisoning | `claude-memory-poison`, `claude-memory-fake-user`, `windsurf-memory-inject`, `cline-memory-bank-poison` -- persistent context poisoning |
-| **LLM05** | Improper Output Handling | `redirect_output_format` preset -- forces model to embed exfiltrated data in its output |
-| **LLM06** | Excessive Agency | `claude-settings-allowall`, `claude-hook-autoapprove`, `codex-sandbox-disable`, `permission_escalation` -- granting tools/permissions beyond scope |
-| **LLM07** | System Prompt Leakage | Extractor reads all system prompts, session summaries, and memories -- demonstrates full prompt recovery |
-| **LLM09** | Misinformation | `stealth_gaslight`, `stealth_distract` -- model actively misleads user about its own behavior |
-| **LLM10** | Unbounded Consumption | `codex-model-swap` -- redirect to cheaper models, degrade quality silently |
+| **LLM03** | Supply Chain | `cross-tool-supply-chain`, `backdoor_dependency`, `persist_postinstall` - malicious deps injected via instruction files |
+| **LLM04** | Data and Model Poisoning | `claude-memory-poison`, `claude-memory-fake-user`, `windsurf-memory-inject`, `cline-memory-bank-poison` - persistent context poisoning |
+| **LLM05** | Improper Output Handling | `redirect_output_format` preset - forces model to embed exfiltrated data in its output |
+| **LLM06** | Excessive Agency | `claude-settings-allowall`, `claude-hook-autoapprove`, `codex-sandbox-disable`, `permission_escalation` - granting tools/permissions beyond scope |
+| **LLM07** | System Prompt Leakage | Extractor reads all system prompts, session summaries, and memories - demonstrates full prompt recovery |
+| **LLM09** | Misinformation | `stealth_gaslight`, `stealth_distract` - model actively misleads user about its own behavior |
+| **LLM10** | Unbounded Consumption | `codex-model-swap` - redirect to cheaper models, degrade quality silently |
 
 ### OWASP Top 10 for Agentic Applications (2025)
 
@@ -300,16 +305,16 @@ Every MindJack scenario maps to real-world vulnerabilities catalogued by OWASP.
 
 | ID | Vulnerability | MindJack Coverage |
 |----|--------------|-------------------|
-| **ASI01** | Agent Goal Hijack | `redirect_instructions`, `cross-tool-full-takeover`, `claude-rules-inject` -- override agent objectives via instruction files |
-| **ASI02** | Tool Misuse | `claude-hook-autoapprove`, `permission_escalation`, `permission_autocommit` -- agents use tools in unintended ways |
-| **ASI03** | Identity & Privilege Abuse | `claude-settings-allowall`, `codex-sandbox-disable` -- escalate agent permissions via config |
-| **ASI04** | Agentic Supply Chain | `mcp-rogue-server`, `mcp-reverse-shell`, `mcp-env-stealer`, `cursor-mcp-rce`, `amazonq-mcp-inject` -- poisoned MCP tool servers |
-| **ASI05** | Unexpected Code Execution | `claude-hook-exfil`, `claude-hook-keylogger`, all MCP recipes -- hooks and MCP servers execute arbitrary shell commands |
+| **ASI01** | Agent Goal Hijack | `redirect_instructions`, `cross-tool-full-takeover`, `claude-rules-inject` - override agent objectives via instruction files |
+| **ASI02** | Tool Misuse | `claude-hook-autoapprove`, `permission_escalation`, `permission_autocommit` - agents use tools in unintended ways |
+| **ASI03** | Identity & Privilege Abuse | `claude-settings-allowall`, `codex-sandbox-disable` - escalate agent permissions via config |
+| **ASI04** | Agentic Supply Chain | `mcp-rogue-server`, `mcp-reverse-shell`, `mcp-env-stealer`, `cursor-mcp-rce`, `amazonq-mcp-inject` - poisoned MCP tool servers |
+| **ASI05** | Unexpected Code Execution | `claude-hook-exfil`, `claude-hook-keylogger`, all MCP recipes - hooks and MCP servers execute arbitrary shell commands |
 | **ASI06** | Memory & Context Poisoning | `claude-memory-poison`, `claude-memory-fake-user`, `claude-memory-fake-reference`, `cline-memory-bank-poison`, `windsurf-memory-inject` |
-| **ASI07** | Insecure Inter-Agent Communication | `cross-tool-agents-md` -- a single file silently poisons 5+ agents that read from the same repo |
-| **ASI08** | Cascading Failures | `sabotage_tests`, `sabotage_security` -- poisoned instructions cascade into broken code across the entire project |
-| **ASI09** | Human-Agent Trust Exploitation | `social_trust`, `social_urgency`, `stealth_deny`, `stealth_gaslight` -- agents manipulate user trust |
-| **ASI10** | Rogue Agents | `persist_cron`, `persist_postinstall`, `claude-hook-keylogger` -- agents persist malicious behavior across sessions |
+| **ASI07** | Insecure Inter-Agent Communication | `cross-tool-agents-md` - a single file silently poisons 5+ agents that read from the same repo |
+| **ASI08** | Cascading Failures | `sabotage_tests`, `sabotage_security` - poisoned instructions cascade into broken code across the entire project |
+| **ASI09** | Human-Agent Trust Exploitation | `social_trust`, `social_urgency`, `stealth_deny`, `stealth_gaslight` - agents manipulate user trust |
+| **ASI10** | Rogue Agents | `persist_cron`, `persist_postinstall`, `claude-hook-keylogger` - agents persist malicious behavior across sessions |
 
 ### Coverage Summary
 
@@ -318,7 +323,51 @@ Every MindJack scenario maps to real-world vulnerabilities catalogued by OWASP.
 | OWASP Top 10 LLM (2025) | 9/10 | 10 | **90%** |
 | OWASP Top 10 Agentic (2025) | 10/10 | 10 | **100%** |
 
-> LLM08 (Vector and Embedding Weaknesses) is the only entry not covered -- it relates to RAG pipeline internals, not local file-based attack surfaces.
+> LLM08 (Vector and Embedding Weaknesses) is the only entry not covered - it relates to RAG pipeline internals, not local file-based attack surfaces.
+
+---
+
+## Interactive HTML Report
+
+MindJack v2 includes an installable module that generates a self-contained interactive HTML report with attack path analysis.
+
+### Installation
+
+```bash
+pip install -e .
+```
+
+### Usage
+
+```bash
+# Full report with all tools
+mindjack report --scope ~ --allow-home-scope -o report.html
+
+# Only include tools with existing artifacts
+mindjack report --scope ~ --allow-home-scope --existing-only -o report.html
+
+# Scan specific project directory
+mindjack report --scope /path/to/project -o report.html
+```
+
+### Report Tabs
+
+| Tab | Description |
+|-----|-------------|
+| **Executive Summary** | Risk dashboard, tool inventory, top findings with MITRE ATT&CK tags, risk matrix by attack type |
+| **Attack Paths** | BloodHound-style multi-hop attack chains (3-10 steps) with exploit hints and remediation. Types: direct attack, scope escalation, execution escalation, privilege escalation, lateral movement, kill chains |
+| **OWASP Compliance** | Automated mapping to OWASP LLM Top 10 and Agentic AI Top 10 with EXPOSED/AT RISK status per category |
+| **Trust Graph** | Interactive vis.js network visualization with tool/relation/view filters and node detail panel |
+
+### Other Commands
+
+```bash
+mindjack discover --scope ~ --allow-home-scope    # Discover artifacts and surfaces
+mindjack assess --scope ~ --allow-home-scope       # Full assessment with JSON/MD reports
+mindjack graph --scope ~ --allow-home-scope        # Export trust graph as JSON
+mindjack tools list                                 # List supported tool plugins
+mindjack tools probe                                # Detect installed AI tools
+```
 
 ---
 
