@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MindJack v2 CLI — Agent workspace exposure mapper."""
+"""MindJack v2 CLI - Agent workspace exposure mapper."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from mindjack.reporting.markdown_report import generate_markdown_report
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="mindjack",
-        description="MindJack v2 — Agent workspace exposure mapper",
+        description="MindJack v2 - Agent workspace exposure mapper",
     )
     parser.add_argument(
         "--version", action="version", version=f"mindjack {__version__}",
@@ -89,6 +89,22 @@ def build_parser() -> argparse.ArgumentParser:
     graph_p.add_argument(
         "--tool-filter", default=None,
         help="Show subgraph for a single tool slug",
+    )
+
+    # --- report ---
+    report_p = sub.add_parser(
+        "report", help="Generate interactive HTML attack graph report",
+    )
+    report_p.add_argument("--scope", nargs="+", type=Path, default=[])
+    report_p.add_argument("--allow-home-scope", action="store_true")
+    report_p.add_argument("--tools", nargs="+", default=None)
+    report_p.add_argument(
+        "-o", "--output", type=Path, default=None,
+        help="Output file path (default: ./mindjack_report.html)",
+    )
+    report_p.add_argument(
+        "--existing-only", action="store_true",
+        help="Only include tools with existing artifacts",
     )
 
     # --- tools ---
@@ -196,11 +212,78 @@ def cmd_tools_probe(args: argparse.Namespace) -> None:
     print()
 
 
+def cmd_report(args: argparse.Namespace) -> None:
+    scope = Scope(
+        paths=args.scope,
+        allow_home=args.allow_home_scope,
+    )
+    ctx = run_discover(scope, tool_filter=args.tools)
+    graph = TrustGraph().build(ctx)
+    graph_dict = graph.to_dict()
+
+    if args.existing_only:
+        graph_dict = _filter_existing_only(graph_dict)
+
+    from mindjack.graph.attack_paths import compute_attack_paths
+    paths_data = compute_attack_paths(graph_dict)
+
+    from mindjack.reporting.html_template import render_html
+    html = render_html(graph_dict, paths_data)
+
+    output = args.output or Path("mindjack_report.html")
+    output.write_text(html, encoding="utf-8")
+
+    _print_summary(ctx)
+    print(f"  -> {output}")
+    print(f"     Open in browser: file://{output.resolve()}")
+    print()
+
+
+def _filter_existing_only(graph_dict: dict) -> dict:
+    """Remove tools that have zero existing artifacts."""
+    existing_tools: set[str] = set()
+    for n in graph_dict["nodes"]:
+        if n["type"] == "artifact" and n.get("metadata", {}).get("exists"):
+            tool_slug = n.get("metadata", {}).get("tool_slug")
+            if tool_slug:
+                existing_tools.add(tool_slug)
+
+    removed_ids: set[str] = set()
+    filtered_nodes = []
+    for n in graph_dict["nodes"]:
+        if n["type"] == "tool" and n["label"] not in existing_tools:
+            removed_ids.add(n["id"])
+            continue
+        if n["type"] == "artifact":
+            ts = n.get("metadata", {}).get("tool_slug")
+            if ts and ts not in existing_tools:
+                removed_ids.add(n["id"])
+                continue
+        filtered_nodes.append(n)
+
+    node_ids = {n["id"] for n in filtered_nodes}
+    filtered_edges = [
+        e for e in graph_dict["edges"]
+        if e["source"] in node_ids and e["target"] in node_ids
+    ]
+
+    connected: set[str] = set()
+    for e in filtered_edges:
+        connected.add(e["source"])
+        connected.add(e["target"])
+    final_nodes = [
+        n for n in filtered_nodes
+        if n["type"] != "trust_surface" or n["id"] in connected
+    ]
+
+    return {"nodes": final_nodes, "edges": filtered_edges}
+
+
 def _print_summary(ctx) -> None:
     existing = [a for a in ctx.artifacts if a.exists]
     print()
     print("=" * 60)
-    print("  MindJack v2 — Assessment")
+    print("  MindJack v2 - Assessment")
     print("=" * 60)
     print(f"  Run ID:     {ctx.run_id}")
     print(f"  Mode:       {ctx.mode}")
@@ -271,6 +354,7 @@ def main() -> None:
         "discover": cmd_discover,
         "assess": cmd_assess,
         "graph": cmd_graph,
+        "report": cmd_report,
         "tools": lambda a: (
             cmd_tools_list(a) if a.tools_command == "list"
             else cmd_tools_probe(a)
